@@ -75,7 +75,7 @@ class FDataBase:
                 return False
 
             tm = math.floor(time.time())
-            self.__cur.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, ?)", (name, email, hpsw, tm))
+            self.__cur.execute("INSERT INTO users VALUES(NULL, ?, ?, ?, NULL, ?)", (name, email, hpsw, tm))
             self.__db.commit()
         except sqlite3.Error as e:
             print("Помилка при додаванні в DB " + str(e))
@@ -109,3 +109,16 @@ class FDataBase:
             print("Помилка отримання даних з DB " + str(e))
 
         return False
+
+    def updata_user_avatar(self, avatar, user_id):
+        if not avatar:
+            return False
+
+        try:
+            binary = sqlite3.Binary(avatar)
+            self.__cur.execute(f"UPDATE users SET avatar = ? WHERE id = ?", (binary, user_id))
+            self.__db.commit()
+        except sqlite3.Error as e:
+            print("Помилка оновлення аватарки в DB: "+str(e))
+            return False
+        return True

@@ -3,18 +3,22 @@ from FDataBase import FDataBase
 import _sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, login_user, login_required
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from UserLogin import UserLogin
 
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
 SECRET_KEY = 'dfsfhlwnsdofhoewhfvsodsfvxk'
+MAX_CONTENT_LENGTH = 1024 * 1024
 
 app = Flask(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 app.secret_key = SECRET_KEY
 
 login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Щоб переглянути цю сторінку необхідно авторизуватись'
+login_manager.login_message_category = 'success'
 
 
 @login_manager.user_loader
@@ -101,21 +105,24 @@ def feedback():
     return render_template('feedback.html', title="Зворотній звʼязок")
 
 
-@app.route("/profile/<username>")
-def profile(username):
-    if "userLogged" not in session or session["userLogged"] != username:
-        abort(401)
-    return f"Профіль користувача {username}"
+@app.route("/profile")
+@login_required
+def profile():
+    return render_template("profile.html", menu=dbase.get_menu(), title="Профіль")
 
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('profile'))
+
     if request.method == "POST":
         user = dbase.get_user_by_email(request.form['email'])
         if user and check_password_hash(user['psw'], request.form['psw']):
             user_login = UserLogin().create(user)
-            login_user(user_login)
-            return redirect(url_for('index'))
+            rm = True if request.form.get('remainme') else False
+            login_user(user_login, remember=rm)
+            return redirect(request.args.get('next') or url_for('profile'))
 
         flash("Неправильний логін або пароль", category="error")
 
@@ -140,19 +147,48 @@ def register():
     return render_template("register.html", menu=dbase.get_menu(), title="Реєстрація")
 
 
+@app.route('/userava')
+@login_required
+def userava():
+    img = current_user.get_avatar(app)
+    if not img:
+        return ""
+
+    h = make_response(img)
+    h.headers['Content-Type'] = 'image/png'
+    return h
+
+
+@app.route('/upload', methods=["POST", "GET"])
+@login_required
+def upload():
+    if request.method == "POST":
+        file = request.files['file']
+        if file and current_user.verify_ext(file.filename):
+            try:
+                img = file.read()
+                res = dbase.updata_user_avatar(img, current_user.get_id())
+                if not res:
+                    flash("Помилка оновлення аватарки", "error")
+                flash("Аватар оновлено", 'success')
+            except FileNotFoundError as e:
+                flash("Помилка читання файла", 'error')
+        else:
+            flash("Помилка оновлення аватарки", "error")
+
+    return redirect(url_for('profile'))
+
 @app.route("/logout")
+@login_required
 def logout():
-    pass
+    logout_user()
+    flash("Ви вийшли з акаунту", category='success')
+    return redirect(url_for('login'))
 
 
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('page404.html', menu=dbase.get_menu(), title='Сторінка не знайдена'), 404
-
-
-@app.errorhandler(401)
-def page_not_found(error):
-    return render_template('page404.html', menu=dbase.get_menu(), title='Необхідно авторизуватись'), 401
 
 
 if __name__ == "__main__":
