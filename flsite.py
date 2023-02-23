@@ -5,6 +5,7 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from UserLogin import UserLogin
+from forms import LoginForm
 
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
@@ -116,17 +117,18 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('profile'))
 
-    if request.method == "POST":
-        user = dbase.get_user_by_email(request.form['email'])
-        if user and check_password_hash(user['psw'], request.form['psw']):
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = dbase.get_user_by_email(form.email.data)
+        if user and check_password_hash(user['psw'], form.psw.data):
             user_login = UserLogin().create(user)
-            rm = True if request.form.get('remainme') else False
+            rm = form.remember.data
             login_user(user_login, remember=rm)
             return redirect(request.args.get('next') or url_for('profile'))
 
         flash("Неправильний логін або пароль", category="error")
 
-    return render_template("login.html", menu=dbase.get_menu(), title="Авторизація")
+    return render_template("login.html", menu=dbase.get_menu(), title="Авторизація", form=form)
 
 
 @app.route("/register", methods=["POST", "GET"])
