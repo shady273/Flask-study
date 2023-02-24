@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from UserLogin import UserLogin
 from forms import LoginForm, RegisterForm
+from admin.admin import admin
 
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
@@ -15,6 +16,7 @@ MAX_CONTENT_LENGTH = 1024 * 1024
 app = Flask(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 app.secret_key = SECRET_KEY
+app.register_blueprint(admin, url_prefix='/admin')
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
