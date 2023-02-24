@@ -5,7 +5,7 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from UserLogin import UserLogin
-from forms import LoginForm
+from forms import LoginForm, RegisterForm
 
 DATABASE = '/tmp/flsite.db'
 DEBUG = True
@@ -133,20 +133,17 @@ def login():
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
-    if request.method == "POST":
-        if len(request.form["name"]) > 4 and len(request.form["email"]) > 4 \
-                and len(request.form["psw"]) > 4 and request.form["psw"] == request.form["psw2"]:
-            hash = generate_password_hash(request.form["psw"])
-            res = dbase.add_user(request.form["name"], request.form["email"], hash)
+    form = RegisterForm()
+    if form.validate_on_submit():
+            hash = generate_password_hash(form.psw.data)
+            res = dbase.add_user(form.name.data, form.email.data, hash)
             if res:
                 flash("Ви успішно зереєструвались", category='success')
                 return redirect(url_for('login'))
             else:
                 flash("Помилка при додаванні в DB", category='error')
-        else:
-            flash("Неправельно заповнені поля", category='error')
 
-    return render_template("register.html", menu=dbase.get_menu(), title="Реєстрація")
+    return render_template("register.html", menu=dbase.get_menu(), title="Реєстрація", form=form)
 
 
 @app.route('/userava')

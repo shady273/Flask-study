@@ -21,7 +21,7 @@ a:hover {
 
 ul.mainmenu{
     list-style: none;
-    background: #3f4137;
+    background: #2a2a2a;
     height: 60px;
     margin: 0;
     padding: 0;
@@ -123,3 +123,24 @@ ul.profile-info {
 ul.profile-info li {
     margin-top: 10px;
 }
+
+.form-contact .invalid {
+    background: #df7373;
+}
+
+.form-contact .invalid-feedback {
+    color: #cc0000;
+}
+
+.form-contact label {
+    display: inline-block;
+    min-width: 80px;
+}
+.form-contact p {
+    margin: 10px 0 10px 0;
+}
+
+.form-contact input[type=submit], textarea {
+    font-size: 16px;
+}
+
